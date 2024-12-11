@@ -89,7 +89,7 @@ class AppWindow:
 
         geometry_name = "pcd"
         scene = self._scene.scene
-        pcd_path = "ply_files_test/skuska_akvarko.ply"  # todo get self.ply_file from streaming and stitching the file
+        pcd_path = "dataset/realsense/scene/integrated.ply"  # todo get self.ply_file from streaming and stitching the file
         pcd = o3d.io.read_point_cloud(pcd_path)
 
         material = rendering.MaterialRecord()
@@ -164,12 +164,23 @@ class AppWindow:
         pass #todo
 
     def start_scan(self):
+        from sensors.realsense_recorder import scan
+        from src.run_system import get_pointcloud
+
         print("Starting scanning...")
         BUTTON_ID = "start_scan"
+
+        
 
         self.update_button_click_state(BUTTON_ID)
         self.change_button_text(BUTTON_ID)
 
+        gui.Application.instance.post_to_main_thread(self.window, scan)
+        
+        #gui.Application.instance.post_to_main_thread(
+        #            self.window, get_pointcloud)
+
+        #get_pointcloud()
 
         pass #todo
 
