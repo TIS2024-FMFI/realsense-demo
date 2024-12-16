@@ -80,10 +80,11 @@ def scan():
         # note: using 640 x 480 depth resolution produces smooth depth boundaries
         #       using rs.format.bgr8 for color image format for OpenCV based image visualization
     print('Using the default profiles: \n  color:{}, depth:{}'.format(
-        color_profiles[9], depth_profiles[9]))
-    w, h, fps, fmt = depth_profiles[9]
+        color_profiles[0], depth_profiles[0]))
+    w, h, fps, fmt = depth_profiles[0]
     config.enable_stream(rs.stream.depth, w, h, fmt, fps)
-    w, h, fps, fmt = color_profiles[9]
+    w, h, fps, fmt = color_profiles[0]
+    fmt = rs.format.bgr8
     config.enable_stream(rs.stream.color, w, h, fmt, fps)
 
 
@@ -93,7 +94,7 @@ def scan():
     depth_sensor = profile.get_device().first_depth_sensor()
 
     # Using preset HighAccuracy for recording
-    depth_sensor.set_option(rs.option.visual_preset, Preset.HighAccuracy)
+    depth_sensor.set_option(rs.option.visual_preset, Preset.Default)
 
     # Getting the depth sensor's depth scale (see rs-align example for explanation)
     depth_scale = depth_sensor.get_depth_scale()
