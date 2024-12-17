@@ -7,6 +7,7 @@
 
 import open3d as o3d
 from open3d.visualization import gui, rendering
+import pymeshlab
 
 
 
@@ -130,7 +131,10 @@ class AppWindow:
         self.update_button_click_state(BUTTON_ID)
         self.change_button_text(BUTTON_ID)
 
-        pass #todo
+        ms = pymeshlab.MeshSet()
+        ms.load_new_mesh("dataset/realsense/scene/integrated.ply")
+        ms.save_current_mesh("dataset/realsense/scene/integrated.stl")
+        ms.save_current_mesh("dataset/realsense/scene/integrated.obj")
 
     def measure_distances_in_ply_scene(self):
         print("Starting measure distance...")
