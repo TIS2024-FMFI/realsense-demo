@@ -8,8 +8,7 @@
 import open3d as o3d
 from open3d.visualization import gui, rendering
 import pymeshlab
-
-
+import os
 
 class AppWindow:
     button_start_text = {
@@ -122,19 +121,42 @@ class AppWindow:
         self.window.set_on_layout(self._on_layout)
         self.window.add_child(self._settings_panel)
 
-        pass #todo
-
     def export_file(self):
         print("Exporting ply file...")
         BUTTON_ID = "export"
-
+        self.location = os.getcwd()
         self.update_button_click_state(BUTTON_ID)
         self.change_button_text(BUTTON_ID)
 
+        dlg = gui.FileDialog(gui.FileDialog.SAVE, "Choose file to save",
+                             self.window.theme)
+        
+        login = os.getlogin()
+        desktop = self.location.split(login,1)[0]+login+"\Desktop"
+        print(self.location)
+        print(desktop)
+        
+        dlg.set_path(desktop)
+        dlg.add_filter(".ply", "Polygon files (.ply)")
+        dlg.add_filter(".stl", "Stereolithography files (.stl)")
+        dlg.add_filter(".obj", "Wavefront OBJ files (.obj)")
+        dlg.set_on_cancel(self._on_file_dialog_cancel)
+        dlg.set_on_done(self._on_export_dialog_done)
+
+        self.window.show_dialog(dlg)
+    
+    def _on_export_dialog_done(self, filename):
+        os.chdir(self.location)
         ms = pymeshlab.MeshSet()
         ms.load_new_mesh("dataset/realsense/scene/integrated.ply")
-        ms.save_current_mesh("dataset/realsense/scene/integrated.stl")
-        ms.save_current_mesh("dataset/realsense/scene/integrated.obj")
+        ms.save_current_mesh(filename)
+
+        self.window.close_dialog()
+        
+    
+    def _on_file_dialog_cancel(self):
+        self.window.close_dialog()
+    
 
     def measure_distances_in_ply_scene(self):
         print("Starting measure distance...")
