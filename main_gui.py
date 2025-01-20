@@ -1,8 +1,12 @@
+import os.path
+
 import numpy as np
 import open3d as o3d
 from open3d.visualization import gui, rendering
 
 APP_NAME = "Realsense APP (FMFI UK project)"
+
+PLY_FILE_PATH = "dataset/realsense/scene/integrated.ply"
 
 SHADER_STYLE = "defaultUnlit"
 
@@ -85,7 +89,7 @@ class AppWindow:
         self.create_button_to_bar(BUTTON_SHOW_SCAN_ID, function=self.show_ply_scene)
         self.create_button_to_bar(BUTTON_HIDE_SCAN_ID, function=self.hide_scan, visibility=False)
 
-        self.create_button_to_bar(BUTTON_START_MEASURE_ID, function=self.start_measure)
+        self.create_button_to_bar(BUTTON_START_MEASURE_ID, function=self.start_measure, visibility=False)
         self.create_button_to_bar(BUTTON_STOP_MEASURE_ID, function=self.stop_measure, visibility=False)
 
         self.create_button_to_bar(BUTTON_EXPORT_ID, function=self.export_file)
@@ -164,8 +168,7 @@ class AppWindow:
 
         geometry_name = "pcd"
         scene = self._scene.scene
-        pcd_path = "dataset/realsense/scene/integrated.ply"  # todo get self.ply_file from streaming and stitching the file
-        pcd = o3d.io.read_point_cloud(pcd_path)
+        pcd = o3d.io.read_point_cloud(PLY_FILE_PATH)
 
         material = rendering.MaterialRecord()
         material.point_size = 5.0
@@ -174,12 +177,6 @@ class AppWindow:
             scene.add_geometry(geometry_name, pcd, material)
         else:
             scene.remove_geometry(geometry_name)
-
-    def change_button_text(self, button_id):
-        button = self.buttons[button_id]
-        is_clicked = self.button_is_clicked_mapper[button_id]
-        button_text = self.button_stop_text[button_id] if is_clicked else self.button_start_text[button_id]
-        button.text = button_text
 
     def remove_pick(self):
         if self._picked_num > 0:
@@ -213,9 +210,13 @@ class AppWindow:
             distance = self.calculate_distance(self._picked_positions[-1], self._picked_positions[-2])
             self.update_distance(distance)
 
+    @staticmethod
+    def exist_path(path: str) -> bool:
+        return os.path.exists(path)
+
     # BUTTON FUNCTIONS
     def start_measure(self):
-        if not self.pcd:
+        if not self.exist_path(PLY_FILE_PATH):
             return
         visibility_after_click_mapper = {
             BUTTON_START_STREAM_ID: False,
@@ -231,10 +232,10 @@ class AppWindow:
 
         self.distance_text_label.visible = True
 
-        self.pcd = o3d.io.read_point_cloud("ply_files_test/skuska_akvarko.ply")
+        self.pcd = o3d.io.read_point_cloud(PLY_FILE_PATH)
         self.pcd_kdtree = o3d.geometry.KDTreeFlann(self.pcd)
 
-        self._scene.set_on_mouse(self._start_measure_event)  # todo when clicked on start measuring
+        self._scene.set_on_mouse(self._start_measure_event)
 
         material = rendering.MaterialRecord()
         material.shader = SHADER_STYLE
@@ -244,14 +245,14 @@ class AppWindow:
 
     def stop_measure(self):
         visibility_after_click_mapper = {
-            BUTTON_START_STREAM_ID: True,
+            BUTTON_START_STREAM_ID: False,
             BUTTON_STOP_STREAM_ID: False,
-            BUTTON_START_SCAN_ID: True,
-            BUTTON_EXPORT_ID: True,
+            BUTTON_START_SCAN_ID: False,
+            BUTTON_EXPORT_ID: False,
             BUTTON_START_MEASURE_ID: True,
             BUTTON_STOP_MEASURE_ID: False,
-            BUTTON_SHOW_SCAN_ID: True,
-            BUTTON_HIDE_SCAN_ID: False,
+            BUTTON_SHOW_SCAN_ID: False,
+            BUTTON_HIDE_SCAN_ID: True,
         }
         self.update_visiblity(visibility_after_click_mapper)
 
@@ -262,7 +263,7 @@ class AppWindow:
         self._scene.scene.remove_geometry(BUTTON_START_MEASURE_ID)
 
     def show_ply_scene(self):
-        if not self.pcd:
+        if not self.exist_path(PLY_FILE_PATH):
             return
 
         visibility_after_click_mapper = {
@@ -283,6 +284,7 @@ class AppWindow:
         material.shader = SHADER_STYLE
         material.point_size = 5.0
 
+        self.pcd = o3d.io.read_point_cloud(PLY_FILE_PATH)
         scene.add_geometry(MAIN_SCREEN_ID, self.pcd, material)
 
     def hide_scan(self):
@@ -320,7 +322,7 @@ class AppWindow:
         visibility_after_click_mapper = {
             BUTTON_START_STREAM_ID: False,
             BUTTON_STOP_STREAM_ID: True,
-            BUTTON_START_SCAN_ID: True,
+            BUTTON_START_SCAN_ID: False,
             BUTTON_EXPORT_ID: False,
             BUTTON_START_MEASURE_ID: False,
             BUTTON_STOP_MEASURE_ID: False,
@@ -337,7 +339,7 @@ class AppWindow:
             BUTTON_STOP_STREAM_ID: False,
             BUTTON_START_SCAN_ID: True,
             BUTTON_EXPORT_ID: True,
-            BUTTON_START_MEASURE_ID: True,
+            BUTTON_START_MEASURE_ID: False,
             BUTTON_STOP_MEASURE_ID: False,
             BUTTON_SHOW_SCAN_ID: True,
             BUTTON_HIDE_SCAN_ID: False,
@@ -351,7 +353,7 @@ class AppWindow:
             BUTTON_STOP_STREAM_ID: False,
             BUTTON_START_SCAN_ID: True,
             BUTTON_EXPORT_ID: True,
-            BUTTON_START_MEASURE_ID: True,
+            BUTTON_START_MEASURE_ID: False,
             BUTTON_STOP_MEASURE_ID: False,
             BUTTON_SHOW_SCAN_ID: True,
             BUTTON_HIDE_SCAN_ID: False,
