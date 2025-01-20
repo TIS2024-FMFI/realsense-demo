@@ -362,7 +362,6 @@ class AppWindow:
 
         pass  # todo
 
-
 def main():
     # We need to initialize the application, which finds the necessary shaders
     # for rendering and prepares the cross-platform window abstraction.
