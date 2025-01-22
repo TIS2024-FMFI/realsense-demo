@@ -2,6 +2,7 @@ import os.path
 
 import numpy as np
 import open3d as o3d
+import pymeshlab
 from open3d.visualization import gui, rendering
 
 APP_NAME = "Realsense APP (FMFI UK project)"
@@ -348,6 +349,7 @@ class AppWindow:
         pass  #
 
     def export_file(self):
+        print("Exporting ply file...")
         visibility_after_click_mapper = {
             BUTTON_START_STREAM_ID: True,
             BUTTON_STOP_STREAM_ID: False,
@@ -359,8 +361,40 @@ class AppWindow:
             BUTTON_HIDE_SCAN_ID: False,
         }
         self.update_visiblity(visibility_after_click_mapper)
+        self.location = os.getcwd()
 
-        pass  # todo
+        dlg = gui.FileDialog(gui.FileDialog.SAVE, "Choose file to save",
+                             self.window.theme)
+        
+        login = os.getlogin()
+        desktop = self.location.split(login,1)[0]+login+"\Desktop"
+        print(self.location)
+        print(desktop)
+        
+        dlg.set_path(desktop)
+        dlg.add_filter(".ply", "Polygon files (.ply)")
+        dlg.add_filter(".stl", "Stereolithography files (.stl)")
+        dlg.add_filter(".obj", "Wavefront OBJ files (.obj)")
+        dlg.set_on_cancel(self._on_export_dialog_cancel)
+        dlg.set_on_done(self._on_export_dialog_done)
+
+        self.window.show_dialog(dlg)
+
+        pass #todo
+    
+
+    
+    def _on_export_dialog_done(self, filename):
+        os.chdir(self.location)
+        ms = pymeshlab.MeshSet()
+        ms.load_new_mesh("dataset/realsense/scene/integrated.ply")
+        ms.save_current_mesh(filename)
+
+        self.window.close_dialog()
+        
+    
+    def _on_export_dialog_cancel(self):
+        self.window.close_dialog()
 
 def main():
     # We need to initialize the application, which finds the necessary shaders
