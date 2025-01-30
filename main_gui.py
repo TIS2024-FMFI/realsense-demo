@@ -332,9 +332,89 @@ class AppWindow:
         }
         self.update_visiblity(visibility_after_click_mapper)
 
-        pass  # todo
+        self.button_is_clicked_mapper[BUTTON_STOP_STREAM_ID] = True
+
+        geometry_name = "pcd"
+        scene = self._scene.scene
+        material = rendering.MaterialRecord()
+        material.point_size = 5.0
+
+        import pyrealsense2 as rs
+        import threading
+        from sensors.realsense_helper import get_profiles
+
+        def add_and_clear(pcd):
+            scene.clear_geometry()
+            scene.add_geometry(geometry_name, pcd, material)
+
+        def capture_frames():
+            pipeline = rs.pipeline()
+            config = rs.config()
+            color_profiles, depth_profiles = get_profiles()
+
+            # note: using 640 x 480 depth resolution produces smooth depth boundaries
+            #       using rs.format.bgr8 for color image format for OpenCV based image visualization
+            print('Using the default profiles: \n  color:{}, depth:{}'.format(
+                color_profiles[0], depth_profiles[0]))
+            w, h, fps, fmt = depth_profiles[0]
+            config.enable_stream(rs.stream.depth, w, h, fmt, fps)
+            w, h, fps, fmt = color_profiles[0]
+            fmt = rs.format.bgr8
+            config.enable_stream(rs.stream.color, w, h, fmt, fps)
+
+            profile = pipeline.start(config)
+
+            align_to = rs.stream.color
+            align = rs.align(align_to)
+
+            try:
+                while self.button_is_clicked_mapper[BUTTON_STOP_STREAM_ID]:
+                    frames = pipeline.wait_for_frames()
+                    aligned_frames = align.process(frames)
+
+                    depth_frame = aligned_frames.get_depth_frame()
+                    color_frame = aligned_frames.get_color_frame()
+                    if not depth_frame or not color_frame:
+                        continue
+
+                    color_image = np.asanyarray(color_frame.get_data())
+
+                    pc = rs.pointcloud()
+                    pc.map_to(color_frame)
+                    points = pc.calculate(depth_frame)
+
+                    vertices = np.asanyarray(points.get_vertices()).view(np.float32).reshape(-1, 3)
+                    colors = np.asanyarray(points.get_texture_coordinates()).view(np.float32).reshape(-1, 2)
+                    vertices[:, 2] = -vertices[:, 2]
+
+                    o3d_pc = o3d.geometry.PointCloud()
+                    o3d_pc.points = o3d.utility.Vector3dVector(vertices)
+
+                    color_data = []
+                    for u, v in colors:
+                        u = int(u * color_image.shape[1])
+                        v = int(v * color_image.shape[0])
+                        color_data_element = [0, 0, 0]
+                        if 0 <= u < color_image.shape[1] and 0 <= v < color_image.shape[0]:
+                            color_data_element = (color_image[v, u] / 255.0)
+                        color_data.append(color_data_element)
+
+                    o3d_pc.colors = o3d.utility.Vector3dVector(color_data)
+                    R = o3d.geometry.get_rotation_matrix_from_xyz([0, 0, np.pi])
+                    o3d_pc.rotate(R, center=(0, 0, 0))
+                    if self.button_is_clicked_mapper[BUTTON_STOP_STREAM_ID]:
+                        gui.Application.instance.post_to_main_thread(
+                            self.window, lambda: add_and_clear(o3d_pc))
+
+            finally:
+                pipeline.stop()
+
+        if self.button_is_clicked_mapper[BUTTON_STOP_STREAM_ID]:
+            threading.Thread(target=capture_frames, daemon=True).start()
 
     def stop_stream(self):
+        self.button_is_clicked_mapper[BUTTON_STOP_STREAM_ID] = False
+
         visibility_after_click_mapper = {
             BUTTON_START_STREAM_ID: True,
             BUTTON_STOP_STREAM_ID: False,
@@ -346,7 +426,8 @@ class AppWindow:
             BUTTON_HIDE_SCAN_ID: False,
         }
         self.update_visiblity(visibility_after_click_mapper)
-        pass  #
+
+        self._scene.scene.clear_geometry()
 
     def export_file(self):
         print("Exporting ply file...")
