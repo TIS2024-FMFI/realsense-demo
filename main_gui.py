@@ -363,7 +363,7 @@ class AppWindow:
             fmt = rs.format.bgr8
             config.enable_stream(rs.stream.color, w, h, fmt, fps)
 
-            profile = pipeline.start(config)
+            pipeline.start(config)
 
             align_to = rs.stream.color
             align = rs.align(align_to)
