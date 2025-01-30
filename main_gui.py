@@ -337,6 +337,7 @@ class AppWindow:
         geometry_name = "pcd"
         scene = self._scene.scene
         material = rendering.MaterialRecord()
+        material.shader = SHADER_STYLE
         material.point_size = 5.0
 
         import pyrealsense2 as rs
@@ -397,6 +398,7 @@ class AppWindow:
                         color_data_element = [0, 0, 0]
                         if 0 <= u < color_image.shape[1] and 0 <= v < color_image.shape[0]:
                             color_data_element = (color_image[v, u] / 255.0)
+                            color_data_element[0], color_data_element[2] = color_data_element[2], color_data_element[0]
                         color_data.append(color_data_element)
 
                     o3d_pc.colors = o3d.utility.Vector3dVector(color_data)
