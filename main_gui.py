@@ -77,7 +77,7 @@ class AppWindow:
         self._left_panel.frame = gui.Rect(r.get_left(), r.y, width,
                                           height)
 
-    def create_button_to_bar(self, name: str, function, visibility=True):
+    def create_button_to_bar(self, name, function, visibility=True):
         button = gui.Button(name)
 
         button.horizontal_padding_em = 0.5
@@ -91,13 +91,13 @@ class AppWindow:
         self.buttons[name] = button
         self.button_is_clicked_mapper[name] = False
 
-    def update_visiblity(self, button_to_visibility_mapper: dict[str, bool]):
+    def update_visiblity(self, button_to_visibility_mapper):
         for button_id in button_to_visibility_mapper.keys():
             self.buttons[button_id].visible = button_to_visibility_mapper[button_id]
         self.window.set_on_layout(self._on_layout)
         self.window.add_child(self._left_panel)
 
-    def update_distance(self, distance: float):
+    def update_distance(self, distance):
         self.distance_text_label.text = f"Distance {str(round(distance, 2))} m"
 
     def buttons_to_bar(self):
@@ -186,13 +186,13 @@ class AppWindow:
         return idx[0]
 
     @staticmethod
-    def calculate_distance(point1: list[float], point2: list[float]) -> float:
+    def calculate_distance(point1, point2):
         point1 = np.array(point1)
         point2 = np.array(point2)
         return np.linalg.norm(point1 - point2)
 
     @staticmethod
-    def create_distance_label() -> gui.Label:
+    def create_distance_label():
         label = gui.Label("Distance: -- m")
         label.text_color = gui.Color(255.0, 255.0, 255.0)
         label.visible = False
@@ -250,10 +250,9 @@ class AppWindow:
             self.update_distance(distance)
 
     @staticmethod
-    def exist_path(path: str) -> bool:
+    def exist_path(path):
         return os.path.exists(path)
 
-    # BUTTON FUNCTIONS
     def start_measure(self):
         if not self.exist_path(PLY_FILE_PATH):
             return
@@ -495,9 +494,6 @@ class AppWindow:
         self.window.close_dialog()
 
 def main():
-    # We need to initialize the application, which finds the necessary shaders
-    # for rendering and prepares the cross-platform window abstraction.
-
     w = AppWindow(1920, 1080)
     w.run()
 
