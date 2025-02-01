@@ -4,11 +4,12 @@ import numpy as np
 import open3d as o3d
 import pymeshlab
 from open3d.visualization import gui, rendering
+from sensors.realsense_helper import get_profiles
 
 APP_NAME = "Realsense APP (FMFI UK project)"
-
+DEFAULT_WIDTH = 1280
+DEFAULT_HEIGHT = 720
 PLY_FILE_PATH = "dataset/realsense/scene/integrated.ply"
-
 SHADER_STYLE = "defaultUnlit"
 
 BUTTON_START_STREAM_ID = "start_stream"
@@ -43,9 +44,27 @@ class AppWindow:
     def __init__(self, width, height):
         self.pcd = None
         self.pcd_kdtree = None
-
+        self.resolution_height = DEFAULT_HEIGHT
+        self.resolution_width = DEFAULT_WIDTH
         self.buttons = dict()
         self.button_is_clicked_mapper = dict()
+
+        colors, depths = get_profiles()
+        
+        for index, i in enumerate(colors):
+            colors[index] = colors[index][0:2]
+
+        for index, i in enumerate(depths):
+            depths[index] = depths[index][0:2]
+
+        res = set(colors) & set(depths)
+
+        values = set()
+
+        for i in res:
+            values.add(str(i[0:2]))
+
+        self.values = sorted(list(values), key=lambda x: int(x.split(",")[0][1:]) and int(x.split(",")[1][:-1]), reverse=True)
 
         gui.Application.instance.initialize()
         self._set_scene(width, height)
@@ -110,6 +129,25 @@ class AppWindow:
         self._left_panel = gui.Vert(0, gui.Margins(size, size, size, size))
 
         self.buttons_to_bar()
+
+        collapse = gui.CollapsableVert("Resolution", 0.33 * em, gui.Margins(em, 0, 0, 0))
+
+
+        rb = gui.RadioButton(gui.RadioButton.VERT)
+
+        def changed(idx):
+            self.resolution_width = int(self.values[idx].split(",")[0][1:])
+            self.resolution_height = int(self.values[idx].split(",")[1][:-1])
+
+            print(f"new index: {idx}")
+        
+        rb.set_on_selection_changed(changed)
+
+        rb.set_items(self.values)
+
+        collapse.add_child(rb)
+        self._left_panel.add_child(collapse)
+
 
         self.distance_text_label = self.create_distance_label()
         self._left_panel.add_child(self.distance_text_label)
@@ -308,16 +346,7 @@ class AppWindow:
 
     def start_scan(self):
         from sensors.realsense_recorder import scan
-        from src.run_system import get_pointcloud
-
-        gui.Application.instance.post_to_main_thread(self.window, scan)
-
-        # gui.Application.instance.post_to_main_thread(
-        #            self.window, get_pointcloud)
-
-        # get_pointcloud()
-
-        pass  # todo
+        gui.Application.instance.post_to_main_thread(self.window, lambda: scan(self.resolution_width, self.resolution_height))
 
     def start_stream(self):
         visibility_after_click_mapper = {
@@ -346,12 +375,13 @@ class AppWindow:
         def add_and_clear(pcd):
             scene.clear_geometry()
             scene.add_geometry(geometry_name, pcd, material)
+            
 
         def capture_frames():
             pipeline = rs.pipeline()
             config = rs.config()
-            config.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30)
-            config.enable_stream(rs.stream.color, 640, 480, rs.format.rgb8, 30)
+            config.enable_stream(rs.stream.depth, self.resolution_width, self.resolution_height, rs.format.z16, 30)
+            config.enable_stream(rs.stream.color, self.resolution_width, self.resolution_height, rs.format.rgb8, 30)
             pipeline.start(config)
 
             align_to = rs.stream.color
@@ -402,6 +432,7 @@ class AppWindow:
         if self.button_is_clicked_mapper[BUTTON_STOP_STREAM_ID]:
             threading.Thread(target=capture_frames, daemon=True).start()
 
+
     def stop_stream(self):
         self.button_is_clicked_mapper[BUTTON_STOP_STREAM_ID] = False
 
@@ -436,12 +467,12 @@ class AppWindow:
 
         dlg = gui.FileDialog(gui.FileDialog.SAVE, "Choose file to save",
                              self.window.theme)
-
+        
         login = os.getlogin()
-        desktop = self.location.split(login, 1)[0] + login + "\Desktop"
+        desktop = self.location.split(login,1)[0]+login+"\Desktop"
         print(self.location)
         print(desktop)
-
+        
         dlg.set_path(desktop)
         dlg.add_filter(".ply", "Polygon files (.ply)")
         dlg.add_filter(".stl", "Stereolithography files (.stl)")
@@ -451,8 +482,6 @@ class AppWindow:
 
         self.window.show_dialog(dlg)
 
-        pass  # todo
-
     def _on_export_dialog_done(self, filename):
         os.chdir(self.location)
         ms = pymeshlab.MeshSet()
@@ -460,16 +489,16 @@ class AppWindow:
         ms.save_current_mesh(filename)
 
         self.window.close_dialog()
-
+        
+    
     def _on_export_dialog_cancel(self):
         self.window.close_dialog()
-
 
 def main():
     # We need to initialize the application, which finds the necessary shaders
     # for rendering and prepares the cross-platform window abstraction.
 
-    w = AppWindow(2048, 768)
+    w = AppWindow(1920, 1080)
     w.run()
 
 
