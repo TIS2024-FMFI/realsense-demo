@@ -342,7 +342,6 @@ class AppWindow:
 
         import pyrealsense2 as rs
         import threading
-        from sensors.realsense_helper import get_profiles
 
         def add_and_clear(pcd):
             scene.clear_geometry()
@@ -351,18 +350,8 @@ class AppWindow:
         def capture_frames():
             pipeline = rs.pipeline()
             config = rs.config()
-            color_profiles, depth_profiles = get_profiles()
-
-            # note: using 640 x 480 depth resolution produces smooth depth boundaries
-            #       using rs.format.bgr8 for color image format for OpenCV based image visualization
-            print('Using the default profiles: \n  color:{}, depth:{}'.format(
-                color_profiles[0], depth_profiles[0]))
-            w, h, fps, fmt = depth_profiles[0]
-            config.enable_stream(rs.stream.depth, w, h, fmt, fps)
-            w, h, fps, fmt = color_profiles[0]
-            fmt = rs.format.bgr8
-            config.enable_stream(rs.stream.color, w, h, fmt, fps)
-
+            config.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30)
+            config.enable_stream(rs.stream.color, 640, 480, rs.format.rgb8, 30)
             pipeline.start(config)
 
             align_to = rs.stream.color
@@ -395,11 +384,10 @@ class AppWindow:
                     for u, v in colors:
                         u = int(u * color_image.shape[1])
                         v = int(v * color_image.shape[0])
-                        color_data_element = [0, 0, 0]
                         if 0 <= u < color_image.shape[1] and 0 <= v < color_image.shape[0]:
-                            color_data_element = (color_image[v, u] / 255.0)
-                            color_data_element[0], color_data_element[2] = color_data_element[2], color_data_element[0]
-                        color_data.append(color_data_element)
+                            color_data.append(color_image[v, u] / 255.0)
+                        else:
+                            color_data.append([0, 0, 0])
 
                     o3d_pc.colors = o3d.utility.Vector3dVector(color_data)
                     R = o3d.geometry.get_rotation_matrix_from_xyz([0, 0, np.pi])
@@ -448,12 +436,12 @@ class AppWindow:
 
         dlg = gui.FileDialog(gui.FileDialog.SAVE, "Choose file to save",
                              self.window.theme)
-        
+
         login = os.getlogin()
-        desktop = self.location.split(login,1)[0]+login+"\Desktop"
+        desktop = self.location.split(login, 1)[0] + login + "\Desktop"
         print(self.location)
         print(desktop)
-        
+
         dlg.set_path(desktop)
         dlg.add_filter(".ply", "Polygon files (.ply)")
         dlg.add_filter(".stl", "Stereolithography files (.stl)")
@@ -463,10 +451,8 @@ class AppWindow:
 
         self.window.show_dialog(dlg)
 
-        pass #todo
-    
+        pass  # todo
 
-    
     def _on_export_dialog_done(self, filename):
         os.chdir(self.location)
         ms = pymeshlab.MeshSet()
@@ -474,10 +460,10 @@ class AppWindow:
         ms.save_current_mesh(filename)
 
         self.window.close_dialog()
-        
-    
+
     def _on_export_dialog_cancel(self):
         self.window.close_dialog()
+
 
 def main():
     # We need to initialize the application, which finds the necessary shaders
