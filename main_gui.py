@@ -130,7 +130,7 @@ class AppWindow:
 
         self.buttons_to_bar()
 
-        collapse = gui.CollapsableVert("Resolution", 0.33 * em, gui.Margins(em, 0, 0, 0))
+        collapse = gui.CollapsableVert("Resolution (width, height)", 0.33 * em, gui.Margins(em, 0, 0, 0))
 
 
         rb = gui.RadioButton(gui.RadioButton.VERT)
